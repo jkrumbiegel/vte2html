@@ -20,6 +20,7 @@ struct VisualState {
     intensity: Option<Intensity>,
     fg: Option<Color>,
     bg: Option<Color>,
+    underline: bool,
 }
 
 impl VisualState {
@@ -28,6 +29,7 @@ impl VisualState {
             intensity: None,
             fg: None,
             bg: None,
+            underline: false,
         }
     }
 }
@@ -117,6 +119,12 @@ impl Log {
             ..self.visual_state
         }
     }
+    fn set_underline(&mut self, underline: bool){
+        self.visual_state = VisualState {
+            underline: underline,
+            ..self.visual_state
+        }
+    }
 }
 
 impl Perform for Log {
@@ -170,7 +178,10 @@ impl Perform for Log {
                         match p {
                             0 => self.visual_state = VisualState::new(),
                             1 => self.set_intensity(Some(Intensity::Bold)),
+                            2 => self.set_intensity(Some(Intensity::Faint)),
+                            4 => self.set_underline(true),
                             22 => self.set_intensity(None),
+                            24 => self.set_underline(false),
                             30..=37 => self.set_fg(Some(Color::N(p as i64))),
                             39 => self.set_fg(None),
                             40..=47 => self.set_bg(Some(Color::N(p as i64))),
@@ -237,7 +248,7 @@ fn print_span(visual: VisualState) -> bool {
             90..=97 => classes.push(format!("sgr-fg-b{}", num - 89)),
             other => panic!("Unexpected fg color value {}", other),
         },
-        Some(Color::RGB(r, g, b)) => (),
+        Some(Color::RGB(_, _, _)) => (),
         None => (),
     }
 
@@ -247,8 +258,12 @@ fn print_span(visual: VisualState) -> bool {
             100..=107 => classes.push(format!("sgr-bg-b{}", num - 99)),
             other => panic!("Unexpected bg color value {}", other),
         },
-        Some(Color::RGB(r, g, b)) => (),
+        Some(Color::RGB(_, _, _)) => (),
         None => (),
+    }
+    
+    if visual.underline {
+        classes.push(String::from("sgr-underline"));
     }
 
     let span_printed = !classes.is_empty(); // later there will be inline style for colors as well
