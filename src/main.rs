@@ -223,7 +223,7 @@ impl Perform for Log {
     }
 }
 
-fn print_span(visual: VisualState) {
+fn print_span(visual: VisualState) -> bool {
     let mut classes: Vec<String> = Vec::new();
     match visual.intensity {
         Some(Intensity::Bold) => classes.push(String::from("sgr-bold")),
@@ -251,11 +251,15 @@ fn print_span(visual: VisualState) {
         None => (),
     }
 
-    print!("<span");
-    if !classes.is_empty() {
-        print!(" class=\"{}\"", classes.join(" "));
+    let span_printed = !classes.is_empty(); // later there will be inline style for colors as well
+    if span_printed {
+        print!("<span");
+        if !classes.is_empty() {
+            print!(" class=\"{}\"", classes.join(" "));
+        }
+        print!(">");
     }
-    print!(">");
+    return span_printed
 }
 
 fn main() {
@@ -287,17 +291,23 @@ fn main() {
         }
     }
 
+    let mut previous_had_span = false;
+
     for i in 0..performer.chars.len() {
         if i == 0 {
-            print_span(performer.visuals[i]);
+            previous_had_span = print_span(performer.visuals[i]);
         } else if performer.visuals[i] != performer.visuals[i - 1] {
-            print!("</span>");
-            print_span(performer.visuals[i]);
+            if previous_had_span {
+                print!("</span>");
+            }
+            previous_had_span = print_span(performer.visuals[i]);
         }
         let ch = performer.chars[i];
         print!("{}", ch);
         if i == performer.chars.len() - 1 {
-            print!("</span>")
+            if previous_had_span {
+                print!("</span>")
+            }
         }
     }
 }
